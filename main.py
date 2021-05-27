@@ -157,8 +157,8 @@ def init(context):
 
     log.info('开始进行模型训练')
     # 进行模型训练
-    other_params = {'learning_rate': 0.2, 'n_estimators': 850, 'max_depth': 10, 'min_child_weight': 1, 'seed': 0,
-                    'subsample': 0.6, 'colsample_bytree': 0.8, 'gamma': 0.5, 'reg_alpha': 2, 'reg_lambda': 0.05}
+    other_params = {'learning_rate': 0.01, 'n_estimators': 575, 'max_depth': 8, 'min_child_weight': 1, 'seed': 0,
+                    'subsample': 0.9, 'colsample_bytree': 0.8, 'gamma': 0.5, 'reg_alpha': 0.1, 'reg_lambda': 0.1}
     g.model = XGBClassifier(**other_params)
     g.model.fit(X_train, y_train)
     log.info('模型训练完成')
