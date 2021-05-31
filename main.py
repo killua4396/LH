@@ -121,7 +121,7 @@ def init(context):
         return df
 
     # 为数据打上标签(十日涨幅大于6%则被认定为是好股票)
-    data['is_good_stock'] = data['quote_rate(%)'].apply(lambda x: x > 3.5)
+    data['is_good_stock'] = data['quote_rate(%)'].apply(lambda x: x > 3.75)
 
     def toInt(x):
         if x:
