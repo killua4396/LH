@@ -42,40 +42,8 @@ def init(context):
     # 设置最大持仓数
     context.stock_hold_count = 7
 
-    # 定义全局变量，用于存储基础股票池(沪深三百去除数据残缺以及新股次新股)
-    g.s_list = ['600050.SH', '601021.SH', '603019.SH', '600352.SH', '002602.SZ', '002841.SZ',
-                '600010.SH', '600031.SH', '002241.SZ', '600115.SH', '000708.SZ', '601669.SH',
-                '000627.SZ', '002024.SZ', '600011.SH', '603160.SH', '603899.SH', '000568.SZ',
-                '600600.SH', '601006.SH', '601607.SH', '600297.SH', '002157.SZ', '002422.SZ',
-                '600660.SH', '000656.SZ', '603799.SH', '600183.SH', '601117.SH', '002027.SZ',
-                '600606.SH', '000596.SZ', '600009.SH', '601668.SH', '002414.SZ', '600118.SH',
-                '000338.SZ', '600018.SH', '002739.SZ', '000768.SZ', '300014.SZ', '600487.SH',
-                '600519.SH', '601186.SH', '601989.SH', '600489.SH', '601238.SH', '600900.SH',
-                '002558.SZ', '600584.SH', '000858.SZ', '600177.SH', '600048.SH', '601100.SH',
-                '002456.SZ', '600271.SH', '601877.SH', '603986.SH', '300015.SZ', '601899.SH',
-                '002773.SZ', '000538.SZ', '002202.SZ', '600068.SH', '601012.SH', '600703.SH',
-                '002415.SZ', '002410.SZ', '000703.SZ', '600637.SH', '600887.SH', '002821.SZ',
-                '600690.SH', '600390.SH', '600061.SH', '600176.SH', '001979.SZ', '600522.SH',
-                '002049.SZ', '000002.SZ', '600066.SH', '600340.SH', '300628.SZ', '002252.SZ',
-                '002008.SZ', '600498.SH', '000069.SZ', '600436.SH', '002508.SZ', '300122.SZ',
-                '002594.SZ', '000876.SZ', '000661.SZ', '000860.SZ', '601933.SH', '600848.SH',
-                '600570.SH', '600998.SH', '000725.SZ', '000961.SZ', '300498.SZ', '002120.SZ',
-                '600795.SH', '600276.SH', '601727.SH', '601155.SH', '002460.SZ', '603658.SH',
-                '600438.SH', '600332.SH', '002001.SZ', '601216.SH', '600019.SH', '600208.SH',
-                '600705.SH', '300529.SZ', '603369.SH', '002624.SZ', '300676.SZ', '002129.SZ',
-                '603833.SH', '000895.SZ', '601857.SH', '002236.SZ', '002601.SZ', '000786.SZ',
-                '300003.SZ', '000938.SZ', '002311.SZ', '600233.SH', '002230.SZ', '002044.SZ',
-                '600111.SH', '300601.SZ', '600028.SH', '601985.SH', '600745.SH', '002050.SZ',
-                '600845.SH', '000100.SZ', '601766.SH', '600763.SH', '600547.SH', '601800.SH',
-                '600383.SH', '002007.SZ', '002555.SZ', '300413.SZ', '002812.SZ', '300433.SZ',
-                '600004.SH', '600029.SH', '002371.SZ', '600161.SH', '600406.SH', '600886.SH',
-                '600809.SH', '000425.SZ', '002493.SZ', '000977.SZ', '002714.SZ', '300136.SZ',
-                '002179.SZ', '600655.SH', '601888.SH', '000066.SZ', '300408.SZ', '002153.SZ',
-                '002271.SZ', '000333.SZ', '300033.SZ', '600893.SH', '600588.SH', '600196.SH',
-                '603288.SH', '300059.SZ', '002475.SZ', '002304.SZ', '002384.SZ', '002032.SZ',
-                '002352.SZ', '300124.SZ', '600585.SH', '002607.SZ', '000671.SZ', '300144.SZ',
-                '600482.SH', '002146.SZ', '600872.SH', '000157.SZ', '601872.SH', '300347.SZ',
-                '601360.SH', '600299.SH', '600346.SH', '000963.SZ']
+    # 剔除新股与次新股
+    get_old_stock()
 
     # 设置起始资金
     context.cash = 1000000
@@ -220,15 +188,6 @@ def init(context):
     log.info('init结束')
 
 
-# 每日开盘前9:00被调用一次,用于储存自定义参数、全局变量,执行盘前选股等(这个模板，不用管)
-def before_trading(context):
-    # 获取日期
-    date = get_datetime().strftime('%Y-%m-%d %H:%M:%S')
-
-    # 打印日期
-    log.info('{} 盘前运行'.format(date))
-
-
 # 定义一个函数获取下一个调仓日
 def get_next_date(current_date, context):
     # 获取今日日期
@@ -247,6 +206,9 @@ def handle_bar(context, bar_dict):
     current_date = pd.Timestamp(get_datetime()).normalize()
     # 判断是否是调仓日，若该日是调仓日，则进行调仓
     if current_date == context.next_date:
+        log.info('开始调整沪深三百')
+        get_old_stock();
+        log.info('调整成功')
         log.info("该日为调仓日，进行调仓")
         # 每次调仓之前上次买入失败的股票数据清空
         context.buy_failed_symbols = dict()
@@ -287,14 +249,6 @@ def handle_bar(context, bar_dict):
         context.next_date = get_next_date(current_date, context)
         log.info("下个调仓日为:" + context.next_date.strftime("%Y-%m-%d"))
 
-
-## 收盘后运行函数,用于储存自定义参数、全局变量,执行盘后选股等（模板函数，不用管）
-def after_trading(context):
-    # 获取时间
-    time = get_datetime().strftime('%Y-%m-%d %H:%M:%S')
-    # 打印时间
-    log.info('{} 盘后运行'.format(time))
-    log.info('一天结束')
 
 
 # 获取今日基本数据
@@ -416,3 +370,16 @@ def create_train_data(start_date, end_date, stock_list):
     new_data = new_data.reset_index()
     # 返回因子添加完毕后的数据
     return new_data
+
+def get_old_stock():
+    g.s_list = get_index_stocks("000300.SH")
+    threshold_date = get_datetime().strftime('%Y-%m-%d %H:%M:%S')
+    threshold_date = pd.to_datetime(threshold_date)
+    threshold_date = threshold_date - pd.DateOffset(years=1)
+    remove_list = []
+    for i in range(len(g.s_list)):
+        if threshold_date < pd.to_datetime(get_security_info(g.s_list[i]).start_date):
+            remove_list.append(g.s_list[i])
+    for stock in remove_list :
+        g.s_list.remove(stock)
+    
