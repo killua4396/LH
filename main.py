@@ -53,6 +53,7 @@ def init(context):
     # 获取数据并进行处理，create_train_data方法见后
     data = create_train_data(start_date='20170101', end_date='20210101', stock_list=g.s_list)
     data = data.dropna()
+    data = data.reset_index(drop=True)
     log.info('数据获取完成')
 
     # 选取出需要进行标准化的列
