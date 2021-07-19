@@ -10,6 +10,7 @@ from sklearn.decomposition import PCA
 # 股票策略模版
 # 初始化函数,全局只运行一次
 def init(context):
+    log.info('回测开始')
     # 定义一些全局变量
     # g.scaler用于数据标准化
     g.scaler = StandardScaler()
@@ -26,7 +27,7 @@ def init(context):
     # 设置基准收益：沪深300指数
     set_benchmark('000300.SH')
     # 打印日志
-    log.info('回测开始')
+    
 
     # 设置股票每笔交易的手续费为万分之二(手续费在买卖成交后扣除,不包括税费,税费在卖出成交后扣除)
     set_commission(PerShare(type='stock', cost=0.0002))
@@ -135,21 +136,7 @@ def init(context):
 
     # 由于股息率这个数据不是一直都有的，只有有时候分红的时候会有股息率
     # 为了获取完整的每日数据，需要填充股息率即，获取训练数据中股息率的均值并填充到每日数据之中
-    log.info('开始获取股息率数据')
-    # 获取股息率数据用于填充
-    info_dividend_rate = pd.DataFrame()
-    for stock in g.s_list:
-        q = query(factor.symbol, factor.date, factor.dividend_rate).filter(
-            factor.date > '20170101', factor.symbol == stock)
-        info_temp = get_factors(q)
-        info_dividend_rate = pd.concat([info_dividend_rate, info_temp])
-    # 获取股息率均值
-    info_dividend_rate = info_dividend_rate.dropna().groupby(["factor_symbol"]).agg('mean').reset_index()
-    # 定义一个类型，用于存储每只股票对应的股息率均值
-    for index, row in info_dividend_rate.iterrows():
-        t = {row['factor_symbol']: row['factor_dividend_rate']}
-        g.dr.update(t)
-    log.info('股息率数据获取完成')
+    get_dr();
 
     log.info('开始获取当日数据')
     # 获取当日数据,get_nowday_info见后
@@ -211,6 +198,7 @@ def handle_bar(context, bar_dict):
         log.info('开始调整沪深三百')
         get_old_stock();
         log.info('调整成功')
+        get_dr();
         log.info("该日为调仓日，进行调仓")
         # 每次调仓之前上次买入失败的股票数据清空
         context.buy_failed_symbols = dict()
@@ -384,4 +372,22 @@ def get_old_stock():
             remove_list.append(g.s_list[i])
     for stock in remove_list :
         g.s_list.remove(stock)
+    
+def get_dr():
+    log.info('开始获取股息率数据')
+    # 获取股息率数据用于填充
+    info_dividend_rate = pd.DataFrame()
+    for stock in g.s_list:
+        q = query(factor.symbol, factor.date, factor.dividend_rate).filter(
+            factor.date > '20170101', factor.symbol == stock)
+        info_temp = get_factors(q)
+        info_dividend_rate = pd.concat([info_dividend_rate, info_temp])
+    # 获取股息率均值
+    info_dividend_rate= info_dividend_rate.fillna(0).groupby(["factor_symbol"]).agg('mean').reset_index()
+    # 定义一个类型，用于存储每只股票对应的股息率均值
+    g.dr = {};
+    for index, row in info_dividend_rate.iterrows():
+        t = {row['factor_symbol']: row['factor_dividend_rate']}
+        g.dr.update(t)
+    log.info('股息率数据获取完成')
     
